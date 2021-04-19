@@ -1,6 +1,8 @@
 package com.java.novalauncher;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.viewpager.widget.ViewPager;
 
 import android.content.Intent;
 import android.content.pm.ResolveInfo;
@@ -16,25 +18,58 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
-
+    Boolean isBottom = true;
+    ViewPager mViewPager;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        initializeHome();
         initializeDrawer();
+    }
+
+    private void initializeHome() {
+        ArrayList<PagerObject> pagerAppList = new ArrayList<>();
+
+        mViewPager = findViewById(R.id.viewPager);
+        mViewPager.setAdapter(new ViewPagerAdapter(this,pagerAppList));
     }
 
     List<AppObject> installedAppList = new ArrayList<>();
 
+    // CoordinatorLayout
+    // https://developer.android.com/reference/androidx/coordinatorlayout/widget/CoordinatorLayout
     private void initializeDrawer() {
         View mBottomSheet = findViewById(R.id.bottomSheet);
         final GridView mDrawerGridView = findViewById(R.id.drawerGrid);
-        BottomSheetBehavior mBottomSheetBehavior = BottomSheetBehavior.from(mBottomSheet);
+        final BottomSheetBehavior mBottomSheetBehavior = BottomSheetBehavior.from(mBottomSheet);
         mBottomSheetBehavior.setHideable(false);
         mBottomSheetBehavior.setPeekHeight(300);
         installedAppList = getInstalledAppList();
         mDrawerGridView.setAdapter(new AppAdapter(getApplicationContext(), installedAppList));
+
+        // 내부 그리드뷰가 위 아래로 확장이 완료 되었을 때만 스크롤링 되도록 설정
+        mBottomSheetBehavior.addBottomSheetCallback(new BottomSheetBehavior.BottomSheetCallback() {
+            @Override
+            public void onStateChanged(@NonNull View bottomSheet, int newState) {
+                // BottomSheet이 숨겨져 있을 떄
+                // gridVIew의 Y위치가 0이 아니면 드래그(행동)했을 때 EXPANDED로 설정
+                if(newState == BottomSheetBehavior.STATE_HIDDEN && mDrawerGridView.getChildAt(0).getY()!=0){
+                    mBottomSheetBehavior.setState(BottomSheetBehavior.STATE_EXPANDED);
+                }
+                // BottomSheet이 드래그 중일 떄
+                //
+                if(newState == BottomSheetBehavior.STATE_DRAGGING && mDrawerGridView.getChildAt(0).getY()!=0){
+                    mBottomSheetBehavior.setState(BottomSheetBehavior.STATE_EXPANDED);
+                }
+            }
+
+            @Override
+            public void onSlide(@NonNull View bottomSheet, float slideOffset) {
+
+            }
+        });
     }
 
     private List<AppObject> getInstalledAppList() {
