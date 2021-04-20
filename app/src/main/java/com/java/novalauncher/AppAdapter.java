@@ -17,9 +17,11 @@ import java.util.List;
 public class AppAdapter extends BaseAdapter {
     Context context;
     List<AppObject> appList;
-    public AppAdapter(Context context, List<AppObject> appList){
+    int cellHeight;
+    public AppAdapter(Context context, List<AppObject> appList, int cellHeight){
         this.context = context;
         this.appList = appList;
+        this.cellHeight = cellHeight;
     }
     @Override
     public int getCount() {
@@ -64,13 +66,22 @@ public class AppAdapter extends BaseAdapter {
         mLayout.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Intent launchAppIntent = context.getPackageManager().getLaunchIntentForPackage(appList.get(position).getPackageName()); // 클릭한 packageName을 Intent에 넘겨줌
-                if(launchAppIntent != null){
-                    context.startActivity(launchAppIntent);
-                }
+                // Main의 itemPress로 실행시킴
+                // appList에서 메모리에 저장된 주소(position)으로 보내기 떄문에 itemp,
+                ((MainActivity) context).itemPress(appList.get(position));
+            }
+        });
+        mLayout.setOnLongClickListener(new View.OnLongClickListener(){
+            @Override
+            public boolean onLongClick(View v) {
+                ((MainActivity) context).itemLongPress(appList.get(position));
+                return false;
             }
         });
         //
+
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, cellHeight);
+        mLayout.setLayoutParams(lp);
         return v;
     }
 }
