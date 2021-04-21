@@ -12,18 +12,19 @@ import androidx.viewpager.widget.PagerAdapter;
 import java.util.ArrayList;
 
 public class ViewPagerAdapter extends PagerAdapter {
+
     Context context;
     ArrayList<PagerObject> pagerAppList;
+    int cellHeight, numColumn;
     ArrayList<AppAdapter> appAdapterList = new ArrayList<>();
-    int cellHeight;
-    public ViewPagerAdapter(Context context, ArrayList<PagerObject> pagerAppList, int cellHeight){
+
+    public ViewPagerAdapter(Context context, ArrayList<PagerObject> pagerAppList, int cellHeight, int numColumn){
         this.context = context;
         this.pagerAppList = pagerAppList;
         this.cellHeight = cellHeight;
+        this.numColumn = numColumn;
     }
 
-    // where we will control the items that are to be shown the app
-    //
     @NonNull
     @Override
     public Object instantiateItem(@NonNull ViewGroup container, int position) {
@@ -31,10 +32,10 @@ public class ViewPagerAdapter extends PagerAdapter {
         ViewGroup layout = (ViewGroup) inflater.inflate(R.layout.pager_layout, container, false);
 
         final GridView mGridView = layout.findViewById(R.id.grid);
-        AppAdapter mGridAdapter = new AppAdapter(context, pagerAppList.get(position).getAppList(), cellHeight);
-        // Page별로 리스트를 받기 위해
-        mGridView.setAdapter(mGridAdapter);
+        mGridView.setNumColumns(numColumn);
 
+        AppAdapter mGridAdapter = new AppAdapter(context, pagerAppList.get(position).getAppList(), cellHeight);
+        mGridView.setAdapter(mGridAdapter);
 
         appAdapterList.add(mGridAdapter);
 
@@ -42,6 +43,10 @@ public class ViewPagerAdapter extends PagerAdapter {
         return layout;
     }
 
+    @Override
+    public void destroyItem(@NonNull ViewGroup container, int position, @NonNull Object object) {
+        container.removeView((View) object);
+    }
 
     @Override
     public int getCount() {
@@ -50,11 +55,11 @@ public class ViewPagerAdapter extends PagerAdapter {
 
     @Override
     public boolean isViewFromObject(@NonNull View view, @NonNull Object object) {
-        return false;
+        return view == object;
     }
 
     public void notifyGridChanged(){
-        for(int i = 0; i < appAdapterList.size(); i++){
+        for(int i = 0; i < appAdapterList.size();i++){
             appAdapterList.get(i).notifyDataSetChanged();
         }
     }

@@ -12,6 +12,7 @@ import android.os.Bundle;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.GridView;
+import android.widget.Toast;
 
 import com.google.android.material.bottomsheet.BottomSheetBehavior;
 
@@ -41,7 +42,7 @@ public class MainActivity extends AppCompatActivity {
         ArrayList<PagerObject> pagerAppList = new ArrayList<>();
         ArrayList<AppObject> appList = new ArrayList<>();
         for(int i = 0; i< 20; i++)
-            appList.add(new AppObject("$i", "${i*i}", getResources().getDrawable(R.drawable.ic_launcher_foreground)));
+            appList.add(new AppObject("$i", "${i*i}", getResources().getDrawable(R.drawable.ic_launcher_foreground), false));
 
         pagerAppList.add(new PagerObject(appList));
         pagerAppList.add(new PagerObject(appList));
@@ -50,7 +51,7 @@ public class MainActivity extends AppCompatActivity {
         cellHeight = (getDisplayContentHeight() - DRAWER_PEEK_HEIGHT) / NUMBER_OF_ROWS;
 
         mViewPager = findViewById(R.id.viewPager);
-        mViewPagerAdapter = new ViewPagerAdapter(this, pagerAppList, cellHeight);
+        mViewPagerAdapter = new ViewPagerAdapter(this, pagerAppList, cellHeight, NUMBER_OF_ROWS);
         mViewPager.setAdapter(mViewPagerAdapter);
     }
 
@@ -90,7 +91,7 @@ public class MainActivity extends AppCompatActivity {
         mBottomSheetBehavior.setHideable(false);
         mBottomSheetBehavior.setPeekHeight(300);
         installedAppList = getInstalledAppList();
-        mDrawerGridView.setAdapter(new AppAdapter(getApplicationContext(), installedAppList, cellHeight));
+        mDrawerGridView.setAdapter(new AppAdapter(this, installedAppList, cellHeight));
 
         // 내부 그리드뷰가 위 아래로 확장이 완료 되었을 때만 스크롤링 되도록 설정
         mBottomSheetBehavior.addBottomSheetCallback(new BottomSheetBehavior.BottomSheetCallback() {
@@ -122,10 +123,26 @@ public class MainActivity extends AppCompatActivity {
 
     // Press : Start Activity
     public  void itemPress(AppObject app){
-        if(mAppDrag != null){
+        // 홈스크린 차지하고 있는 칸에 옮기는 경우
+        if(mAppDrag != null && !app.getName().equals("")){
+            Toast.makeText(this, "Cell Already Occupied", Toast.LENGTH_SHORT);
+            return;
+        }
+        // 홈스크린 빈칸에 옮기는 경우, 스크린에 앱 추가
+        if(mAppDrag != null && !app.getIsAppInDrawer()){
             app.setPackageName(mAppDrag.getPackageName());
             app.setImage(mAppDrag.getImage());
             app.setName(mAppDrag.getName());
+            app.setIsAppInDrawer(false);
+
+            // 앱 삭제
+            if(!mAppDrag.getIsAppInDrawer()){
+                mAppDrag.setPackageName("");
+                mAppDrag.setImage(getResources().getDrawable(R.drawable.ic_launcher_background));
+                mAppDrag.setName("");
+                mAppDrag.setIsAppInDrawer(false);
+            }
+
             mAppDrag = null;
             mViewPagerAdapter.notifyGridChanged();
             return;
@@ -179,7 +196,7 @@ public class MainActivity extends AppCompatActivity {
             String appName = UntreatedApp.activityInfo.loadLabel(getPackageManager()).toString();
             String appPackageName = UntreatedApp.activityInfo.packageName;
             Drawable appImage = UntreatedApp.activityInfo.loadIcon(getPackageManager());
-            AppObject app = new AppObject(appPackageName, appName, appImage);
+            AppObject app = new AppObject(appPackageName, appName, appImage, true);
 
             if(!list.contains(app))
                 list.add(app);
