@@ -4,14 +4,21 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.viewpager.widget.ViewPager;
 
+import android.Manifest;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.ResolveInfo;
 import android.graphics.Point;
 import android.graphics.drawable.Drawable;
+import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.GridView;
+import android.widget.ImageButton;
+import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.Toast;
 
 import com.google.android.material.bottomsheet.BottomSheetBehavior;
@@ -26,6 +33,9 @@ public class MainActivity extends AppCompatActivity {
 
     int NUMBER_OF_ROWS = 5;
     int DRAWER_PEEK_HEIGHT = 100;
+    String PREFS_NAME = "NovaPrefs";
+
+    int numRow = 0, numColumn = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -33,25 +43,49 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         getSupportActionBar().hide();
 
-        initializeHome();
-        initializeDrawer();
+        getPermissions();
+        getData();
+
+        final LinearLayout mTopDrawerLayout = findViewById(R.id.topDrawerLayout);
+        // onCreate에서 뷰를 생성하는데 시간이 걸려서 아래와 같이 하면 높이가 0으로 받을 수 있다.
+        // mTopDrawerLayout.getHeight();
+        mTopDrawerLayout.post(new Runnable(){
+            @Override
+            public void run() {
+                DRAWER_PEEK_HEIGHT = mTopDrawerLayout.getHeight();
+                initializeHome();
+                initializeDrawer();
+            }
+        });
+        ImageButton mSettings = findViewById(R.id.settings);
+        mSettings.setOnClickListener(new View.OnClickListener(){
+            @Override
+            public void onClick(View v) {
+                startActivity(new Intent(getApplicationContext(), SettingsActivity.class));
+            }
+        });
     }
 
     ViewPagerAdapter mViewPagerAdapter;
     private void initializeHome() {
         ArrayList<PagerObject> pagerAppList = new ArrayList<>();
-        ArrayList<AppObject> appList = new ArrayList<>();
-        for(int i = 0; i< 20; i++)
-            appList.add(new AppObject("$i", "${i*i}", getResources().getDrawable(R.drawable.ic_launcher_foreground), false));
+        ArrayList<AppObject> appList1 = new ArrayList<>();
+        ArrayList<AppObject> appList2 = new ArrayList<>();
+        ArrayList<AppObject> appList3 = new ArrayList<>();
+        for(int i = 0; i< numColumn*numRow; i++){
+            appList1.add(new AppObject("", "", getResources().getDrawable(R.drawable.ic_launcher_foreground), false));
+            appList2.add(new AppObject("", "", getResources().getDrawable(R.drawable.ic_launcher_foreground), false));
+            appList3.add(new AppObject("", "", getResources().getDrawable(R.drawable.ic_launcher_foreground), false));
+        }
 
-        pagerAppList.add(new PagerObject(appList));
-        pagerAppList.add(new PagerObject(appList));
-        pagerAppList.add(new PagerObject(appList));
+        pagerAppList.add(new PagerObject(appList1));
+        pagerAppList.add(new PagerObject(appList2));
+        pagerAppList.add(new PagerObject(appList3));
 
-        cellHeight = (getDisplayContentHeight() - DRAWER_PEEK_HEIGHT) / NUMBER_OF_ROWS;
+        cellHeight = (getDisplayContentHeight() - DRAWER_PEEK_HEIGHT) / numRow;
 
         mViewPager = findViewById(R.id.viewPager);
-        mViewPagerAdapter = new ViewPagerAdapter(this, pagerAppList, cellHeight, NUMBER_OF_ROWS);
+        mViewPagerAdapter = new ViewPagerAdapter(this, pagerAppList, cellHeight, numColumn);
         mViewPager.setAdapter(mViewPagerAdapter);
     }
 
@@ -161,7 +195,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void collapseDrawer() {
-        mDrawerGridView.setY(0);
+        mDrawerGridView.setY(DRAWER_PEEK_HEIGHT);
         mBottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
     }
 
@@ -202,5 +236,38 @@ public class MainActivity extends AppCompatActivity {
                 list.add(app);
         }
         return list;
+    }
+
+
+
+    private void getData(){
+        ImageView mHomeScreenImage = findViewById(R.id.homeScreenImage);
+        SharedPreferences sharedPreferences = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+        String imageUri = sharedPreferences.getString("imageUri", null);
+        int numRow = sharedPreferences.getInt("numRow", 7);
+        int numColumn = sharedPreferences.getInt("numColumn", 4);
+
+        // 변화가 생겼을 때
+        if(this.numRow != numRow || this.numColumn != numColumn){
+            this.numRow = numRow;
+            this.numColumn = numColumn;
+            initializeHome();
+        }
+        if(imageUri != null){
+            mHomeScreenImage.setImageURI(Uri.parse(imageUri));
+        }
+    }
+
+    private void getPermissions() {
+        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.M){
+            requestPermissions(new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},1);
+            requestPermissions(new String[]{Manifest.permission.READ_EXTERNAL_STORAGE},1);
+        }
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        getData();
     }
 }
